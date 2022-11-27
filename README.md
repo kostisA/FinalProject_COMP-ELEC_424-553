@@ -1,9 +1,9 @@
 # Final Project COMP/ELEC 424/553
 
-Line detection working on BBB via:
-https://www.hackster.io/really-bad-idea/autonomous-path-following-car-6c4992
+<h2> CAMERA SETUP <h2>
 
-FOR BB AI-64:
-- remove comments from opencv imshow lines
+Image working on BBB via code in folder teamReallyBadIdea
+
+For BB AI-64:
 - adjust resolution in code (instructions in assignment description)
-- might need to specify camera index to opencv since 2 usb ports
+- might need to specify camera index to opencv since AI has 2 usb ports
