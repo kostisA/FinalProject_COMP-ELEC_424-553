@@ -195,15 +195,15 @@ def go_backwards():
 def detect_edges(frame):
     # filter for blue lane lines
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    cv2.imshow("HSV",hsv)
+    # cv2.imshow("HSV",hsv)
     lower_blue = np.array([90, 120, 0], dtype="uint8")
     upper_blue = np.array([150, 255, 255], dtype="uint8")
     mask = cv2.inRange(hsv, lower_blue, upper_blue)
-    cv2.imshow("mask",mask)
+    # cv2.imshow("mask",mask)
 
     # detect edges
     edges = cv2.Canny(mask, 50, 100)
-    cv2.imshow("edges",edges)
+    # cv2.imshow("edges",edges)
 
     return edges
 
@@ -223,7 +223,7 @@ def region_of_interest(edges):
     cv2.fillPoly(mask, polygon, 255)
 
     cropped_edges = cv2.bitwise_and(edges, mask)
-    cv2.imshow("roi",cropped_edges)
+    # cv2.imshow("roi",cropped_edges)
 
     return cropped_edges
 
@@ -496,15 +496,15 @@ while counter < max_ticks:
             continue
 
     # process the frame to determine the desired steering angle
-    cv2.imshow("original",frame)
+    # cv2.imshow("original",frame)
     edges = detect_edges(frame)
     roi = region_of_interest(edges)
     line_segments = detect_line_segments(roi)
     lane_lines = average_slope_intercept(frame, line_segments)
     lane_lines_image = display_lines(frame, lane_lines)
     steering_angle = get_steering_angle(frame, lane_lines)
-    heading_image = display_heading_line(lane_lines_image,steering_angle)
-    cv2.imshow("heading line",heading_image)
+    # heading_image = display_heading_line(lane_lines_image,steering_angle)
+    # cv2.imshow("heading line",heading_image)
 
     # calculate changes for PD
     now = time.time()
@@ -535,6 +535,7 @@ while counter < max_ticks:
     elif turn_amt < right:
         turn_amt = right
 
+    print("TURN: ", turn_amt)
     # turn!
     PWM.set_duty_cycle(steeringPin, turn_amt)
 
