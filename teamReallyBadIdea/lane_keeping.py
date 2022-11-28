@@ -46,7 +46,7 @@ def isRedFloorVisible(frame):
     :param frame: Image
     :return: [(True is the camera sees a red on the floor, false otherwise), video output]
     """
-    print("Checking for floor stop")
+    #print("Checking for floor stop")
     boundaries = getRedFloorBoundaries()
     return isMostlyColor(frame, boundaries)
 
@@ -65,7 +65,7 @@ def isTrafficRedLightVisible(frame):
     :param frame:
     :return: [(True is the camera sees a stop light, false otherwise), video output]
     """
-    print("Checking for traffic stop")
+    #print("Checking for traffic stop")
     boundaries = getTrafficRedLightBoundaries()
     return isMostlyColor(frame, boundaries)
 
@@ -84,7 +84,7 @@ def isTrafficGreenLightVisible(frame):
     :param frame:
     :return: [(True is the camera sees a green light, false otherwise), video output]
     """
-    print("Checking For Green Light")
+    #print("Checking For Green Light")
     boundaries = getTrafficGreenLightBoundaries()
     return isMostlyColor(frame, boundaries)
 
@@ -436,8 +436,8 @@ isStopSignBool = False
 while counter < max_ticks:
     ret, original_frame = video.read()
     frame = cv2.resize(original_frame, (160, 120))
-    if sightDebug:
-        cv2.imshow("Resized Frame", frame)
+    #if sightDebug:
+    #   cv2.imshow("Resized Frame", frame)
 
     # check for stop sign/traffic light every couple ticks
     if ((counter + 1) % stopSignCheck) == 0:
@@ -453,8 +453,8 @@ while counter < max_ticks:
         # check for the first stop sign
         elif passedStopLight and not passedFirstStopSign:
             isStopSignBool, floorSight = isRedFloorVisible(frame)
-            if sightDebug:
-                cv2.imshow("floorSight", floorSight)
+            #if sightDebug:
+            #    cv2.imshow("floorSight", floorSight)
             if isStopSignBool:
                 print("detected first stop sign, stopping")
                 stop()
@@ -503,14 +503,14 @@ while counter < max_ticks:
     lane_lines = average_slope_intercept(frame, line_segments)
     lane_lines_image = display_lines(frame, lane_lines)
     steering_angle = get_steering_angle(frame, lane_lines)
-    # heading_image = display_heading_line(lane_lines_image,steering_angle)
-    # cv2.imshow("heading line",heading_image)
+    heading_image = display_heading_line(lane_lines_image,steering_angle)
+    cv2.imshow("heading line",heading_image)
 
     # calculate changes for PD
     now = time.time()
     dt = now - lastTime
-    if sightDebug:
-        cv2.imshow("Cropped sight", roi)
+    #if sightDebug:
+    #    cv2.imshow("Cropped sight", roi)
     deviation = steering_angle - 90
 
     # PD Code
@@ -535,7 +535,7 @@ while counter < max_ticks:
     elif turn_amt < right:
         turn_amt = right
 
-    print("TURN: ", turn_amt)
+    print("TURN AMOUNT: ", turn_amt)
     # turn!
     PWM.set_duty_cycle(steeringPin, turn_amt)
 
