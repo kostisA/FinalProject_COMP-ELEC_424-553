@@ -1,12 +1,30 @@
+# Team: Paul Walker
+# Authors: Jason ***, Ye ***, Konstantinos Alexopoulos
+# Class: COMP/ELEC 424/553
+# Final Project: Autonomous RC Car 
+# Fall 2022
+
+# Code drawn from:
+# https://www.hackster.io/really-bad-idea/autonomous-path-following-car-6c4992
+
+# ...ML MODEL...
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import math
 import sys
 import time
-import Adafruit_BBIO.PWM as PWM
 
-# based on: https://www.instructables.com/Autonomous-Lane-Keeping-Car-Using-Raspberry-Pi-and/
+# Camera
+frame_width = 320
+frame_height = 240
+
+sightDebug = True
+
+# PD variables
+kp = 0.085
+kd = kp * 0.1
 
 # Throttle
 throttlePin = "P8_13"
@@ -24,189 +42,34 @@ right = 6
 # Max number of loops
 max_ticks = 2000
 
+
 # Booleans for handling stop light
 passedStopLight = False
 atStopLight = False
 passedFirstStopSign = False
-
 secondStopLightTick = 0
 
+def reset_car():
+    # TODO: SET PWM TO 0 for steering and speed
+    print("Car: stopped & straightened")
+    
 
-def getRedFloorBoundaries():
-    """
-    Gets the hsv boundaries and success boundaries indicating if the floor is red
-    :return: [[lower color and success boundaries for red floor], [upper color and success boundaries for red floor]]
-    """
-    return getBoundaries("redboundaries.txt")
-
-
-def isRedFloorVisible(frame):
-    """
-    Detects whether or not the floor is red
-    :param frame: Image
-    :return: [(True is the camera sees a red on the floor, false otherwise), video output]
-    """
-    #print("Checking for floor stop")
-    boundaries = getRedFloorBoundaries()
-    return isMostlyColor(frame, boundaries)
-
-
-def getTrafficRedLightBoundaries():
-    """
-    Gets the traffic red light hsv boundaries and success boundaries
-    :return: [[lower color and success boundaries for red light], [upper color and success boundaries for red light]]
-    """
-    return getBoundaries("trafficRedBoundaries.txt")
-
-
-def isTrafficRedLightVisible(frame):
-    """
-    Detects whether or not we can see a stop sign
-    :param frame:
-    :return: [(True is the camera sees a stop light, false otherwise), video output]
-    """
-    #print("Checking for traffic stop")
-    boundaries = getTrafficRedLightBoundaries()
-    return isMostlyColor(frame, boundaries)
-
-
-def getTrafficGreenLightBoundaries():
-    """
-    Gets the traffic green light hsv boundaries and success boundaries
-    :return: [[lower color and success boundaries for green light], [upper color and success boundaries for green light]]
-    """
-    return getBoundaries("trafficGreenboundaries.txt")
-
-
-def isTrafficGreenLightVisible(frame):
-    """
-    Detects whether or not we can see a green traffic light
-    :param frame:
-    :return: [(True is the camera sees a green light, false otherwise), video output]
-    """
-    #print("Checking For Green Light")
-    boundaries = getTrafficGreenLightBoundaries()
-    return isMostlyColor(frame, boundaries)
-
-
-def isMostlyColor(image, boundaries):
-    """
-    Detects whether or not the majority of a color on the screen is a particular color
-    :param image:
-    :param boundaries: [[color boundaries], [success boundaries]]
-    :return: boolean if image satisfies provided boundaries, and an image used for debugging
-    """
-    #Convert to HSV color space
-    hsv_img = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-    #parse out the color boundaries and the success boundaries
-    color_boundaries = boundaries[0]
-    percentage = boundaries[1]
-
-    lower = np.array(color_boundaries[0])
-    upper = np.array(color_boundaries[1])
-    mask = cv2.inRange(hsv_img, lower, upper)
-    output = cv2.bitwise_and(hsv_img, hsv_img, mask=mask)
-
-    #Calculate what percentage of image falls between color boundaries
-    percentage_detected = np.count_nonzero(mask) * 100 / np.size(mask)
-    print("percentage_detected " + str(percentage_detected) + " lower " + str(lower) + " upper " + str(upper))
-    # If the percentage percentage_detected is betweeen the success boundaries, we return true, otherwise false for result
-    result = percentage[0] < percentage_detected <= percentage[1]
-    if result:
-        print(percentage_detected)
-    return result, output
-
-
-def getBoundaries(filename):
-    """
-    Reads the boundaries from the file filename
-    Format:
-        [0] lower: [H, S, V, lower percentage for classification of success]
-        [1] upper: [H, S, V, upper percentage for classification of success]
-    :param filename: file containing boundary information as above
-    :return: [[lower color and success boundaries], [upper color and success boundaries]]
-    """
-    default_lower_percent = 50
-    default_upper_percent = 100
-    with open(filename, "r") as f:
-        boundaries = f.readlines()
-        lower_data = [val for val in boundaries[0].split(",")]
-        upper_data = [val for val in boundaries[1].split(",")]
-
-        if len(lower_data) >= 4:
-            lower_percent = float(lower_data[3])
-        else:
-            lower_percent = default_lower_percent
-
-        if len(upper_data) >= 4:
-            upper_percent = float(upper_data[3])
-        else:
-            upper_percent = default_upper_percent
-
-        lower = [int(x) for x in lower_data[:3]]
-        upper = [int(x) for x in upper_data[:3]]
-        boundaries = [lower, upper]
-        percentages = [lower_percent, upper_percent]
-    return boundaries, percentages
-
-
-def initialize_car():
-    # give 7.5% duty at 50Hz to throttle
-    PWM.start(throttlePin, dont_move, frequency=50)
-
-    # wait for car to be ready
+def start_car():
+    # TODO: Set PWM to 7.5
+    print("Car: ready")
     input()
-    PWM.start(steeringPin, dont_move, frequency=50)
-
-
-def stop():
-    """
-    Stops the car
-    :return: none
-    """
-    PWM.set_duty_cycle(throttlePin, dont_move)
-
-
-def go():
-    """
-    Sends the car forward at a default PWM
-    :return: none
-    """
-    PWM.set_duty_cycle(throttlePin, go_forward)
-
-
-def go_faster():
-    """
-    Sends the car forward at a faster default PWM
-    :return: none
-    """
-    PWM.set_duty_cycle(throttlePin, go_forward + go_faster_addition)
-
-
-def go_backwards():
-    """
-    (Attempts to) send the car backwards
-    :return: none
-    """
-    PWM.set_duty_cycle(throttlePin, 7.1)
-
-
+    
 def detect_edges(frame):
     # filter for blue lane lines
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    # cv2.imshow("HSV",hsv)
+
     lower_blue = np.array([90, 120, 0], dtype="uint8")
     upper_blue = np.array([150, 255, 255], dtype="uint8")
     mask = cv2.inRange(hsv, lower_blue, upper_blue)
-    # cv2.imshow("mask",mask)
 
-    # detect edges
     edges = cv2.Canny(mask, 50, 100)
-    # cv2.imshow("edges",edges)
 
     return edges
-
 
 def region_of_interest(edges):
     height, width = edges.shape
@@ -223,10 +86,8 @@ def region_of_interest(edges):
     cv2.fillPoly(mask, polygon, 255)
 
     cropped_edges = cv2.bitwise_and(edges, mask)
-    # cv2.imshow("roi",cropped_edges)
 
     return cropped_edges
-
 
 def detect_line_segments(cropped_edges):
     rho = 1
@@ -238,12 +99,10 @@ def detect_line_segments(cropped_edges):
 
     return line_segments
 
-
 def average_slope_intercept(frame, line_segments):
     lane_lines = []
 
     if line_segments is None:
-        print("no line segments detected")
         return lane_lines
 
     height, width, _ = frame.shape
@@ -257,7 +116,6 @@ def average_slope_intercept(frame, line_segments):
     for line_segment in line_segments:
         for x1, y1, x2, y2 in line_segment:
             if x1 == x2:
-                print("skipping vertical lines (slope = infinity")
                 continue
 
             fit = np.polyfit((x1, x2), (y1, y2), 1)
@@ -281,7 +139,6 @@ def average_slope_intercept(frame, line_segments):
 
     return lane_lines
 
-
 def make_points(frame, line):
     height, width, _ = frame.shape
 
@@ -298,7 +155,6 @@ def make_points(frame, line):
 
     return [[x1, y1, x2, y2]]
 
-
 def display_lines(frame, lines, line_color=(0, 255, 0), line_width=6):
     line_image = np.zeros_like(frame)
 
@@ -310,7 +166,6 @@ def display_lines(frame, lines, line_color=(0, 255, 0), line_width=6):
     line_image = cv2.addWeighted(frame, 0.8, line_image, 1, 1)
 
     return line_image
-
 
 def display_heading_line(frame, steering_angle, line_color=(0, 0, 255), line_width=5):
     heading_image = np.zeros_like(frame)
@@ -327,7 +182,6 @@ def display_heading_line(frame, steering_angle, line_color=(0, 0, 255), line_wid
     heading_image = cv2.addWeighted(frame, 0.8, heading_image, 1, 1)
 
     return heading_image
-
 
 def get_steering_angle(frame, lane_lines):
     height, width, _ = frame.shape
@@ -354,7 +208,6 @@ def get_steering_angle(frame, lane_lines):
 
     return steering_angle
 
-
 def plot_pd(p_vals, d_vals, error, show_img=False):
     fig, ax1 = plt.subplots()
     t_ax = np.arange(len(p_vals))
@@ -377,7 +230,6 @@ def plot_pd(p_vals, d_vals, error, show_img=False):
         plt.show()
     plt.clf()
 
-
 def plot_pwm(speed_pwms, turn_pwms, error, show_img=False):
     fig, ax1 = plt.subplots()
     t_ax = np.arange(len(speed_pwms))
@@ -399,168 +251,99 @@ def plot_pwm(speed_pwms, turn_pwms, error, show_img=False):
     plt.clf()
 
 
-# set up the car throttle and steering PWMs
-initialize_car()
+def main():
 
-# set up video
-video = cv2.VideoCapture(0)
-video.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
-video.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
+    # set up video
+    video = cv2.VideoCapture(0)
+    video.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
+    video.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
+    
+    reset_car()  
+    
+    # arrays for making the final graphs
+    p_vals = []
+    d_vals = []
+    err_vals = []
+    speed_pwm = []
+    steer_pwm = []
+    current_speed = go_forward
+    
+    # loop-related variables
+    stopSignCheck = 1
+    isStopSignBool = False
+    counter = 0
+    lastTime = 0
+    lastError = 0
+    
+    start_car()
+    
+    while counter < max_ticks:
+    
+        # manage video
+        ret, original_frame = video.read()
+        frame = cv2.resize(original_frame, (160, 120))
+        
+        # process the frame to determine the desired steering angle
+        edges = detect_edges(frame)
+        roi = region_of_interest(edges)
+        line_segments = detect_line_segments(roi)
+        lane_lines = average_slope_intercept(frame, line_segments)
+        lane_lines_image = display_lines(frame, lane_lines)
+        steering_angle = get_steering_angle(frame, lane_lines)
+        heading_image = display_heading_line(lane_lines_image,steering_angle)
+        cv2.imshow("heading line",heading_image)
 
-# wait for video to load
-time.sleep(1)
+        # calculate changes for PD
+        now = time.time()
+        dt = now - lastTime
+        deviation = steering_angle - 90
 
-# PD variables
-kp = 0.085
-kd = kp * 0.1
-lastTime = 0
-lastError = 0
+        # PD Code
+        error = -deviation
+        base_turn = 7.5
+        proportional = kp * error
+        derivative = kd * (error - lastError) / dt
 
-# counter for number of ticks
-counter = 0
+        # take values for graphs
+        p_vals.append(proportional)
+        d_vals.append(derivative)
+        err_vals.append(error)
 
-# start the engines
-go()
+        # determine actual turn to do
+        turn_amt = base_turn + proportional + derivative
 
-# arrays for making the final graphs
-p_vals = []
-d_vals = []
-err_vals = []
-speed_pwm = []
-steer_pwm = []
-current_speed = go_forward
+        # caps turns to make PWM values
+        if 7.2 < turn_amt < 7.8:
+            turn_amt = 7.5
+        elif turn_amt > left:
+            turn_amt = left
+        elif turn_amt < right:
+            turn_amt = right
 
-stopSignCheck = 1
-sightDebug = False
-isStopSignBool = False
-while counter < max_ticks:
-    ret, original_frame = video.read()
-    frame = cv2.resize(original_frame, (160, 120))
-    #if sightDebug:
-    #   cv2.imshow("Resized Frame", frame)
+        # TODO: turn using turn_amt
+        print("Turn amount: ", turn_amt) 
+        
+        # take values for graphs
+        steer_pwm.append(turn_amt)
+        speed_pwm.append(current_speed)
+        
+        # update PD values for next loop
+        lastError = error
+        lastTime = time.time()
 
-    # check for stop sign/traffic light every couple ticks
-    if ((counter + 1) % stopSignCheck) == 0:
-        # check for stop light
-        if not passedStopLight and not atStopLight:
-            trafficStopBool, _ = isTrafficRedLightVisible(frame)
-            print(trafficStopBool)
-            if trafficStopBool:
-                print("detected red light, stopping")
-                stop()
-                atStopLight = True
-                continue
-        # check for the first stop sign
-        elif passedStopLight and not passedFirstStopSign:
-            isStopSignBool, floorSight = isRedFloorVisible(frame)
-            #if sightDebug:
-            #    cv2.imshow("floorSight", floorSight)
-            if isStopSignBool:
-                print("detected first stop sign, stopping")
-                stop()
-                time.sleep(2)
-                passedFirstStopSign = True
-                # this is used to not check for the second stop sign until many frames later
-                secondStopSignTick = counter + 200
-                # now check for stop sign less frequently
-                stopSignCheck = 3
-                # add a delay to calling go faster
-                go_faster_tick = counter + go_faster_tick_delay
-                print("first stop finished!")
-        # check for the second stop sign
-        elif passedStopLight and passedFirstStopSign and counter > secondStopSignTick:
-            isStop2SignBool, _ = isRedFloorVisible(frame)
-            print("is a floor stop: ", isStopSignBool)
-            if isStop2SignBool:
-                # last stop sign detected, exits while loop
-                print("detected second stop sign, stopping")
-                stop()
-                break
+        key = cv2.waitKey(1)
+        if key == 27:
+            break
 
-    # makes car go faster, helps it have enough speed to get to the end of the course
-    if isStopSignBool and counter == go_faster_tick:
-        print("Going FASTER")
-        go_faster()
-        current_speed += go_faster_addition
+        counter += 1
+    
+        
+    # clean up resources
+    reset_car()
+    video.release()
+    cv2.destroyAllWindows()
+    plot_pd(p_vals, d_vals, err_vals, True)
+    plot_pwm(speed_pwm, steer_pwm, err_vals, True)
 
-    # look for green stop light while waiting after red stop light
-    if not passedStopLight and atStopLight:
-        print("waiting at red light")
-        trafficGoBool, _ = isTrafficGreenLightVisible(frame)
-        if trafficGoBool:
-            passedStopLight = True
-            atStopLight = False
-            print("green light!")
-            go()
-        else:
-            continue
-
-    # process the frame to determine the desired steering angle
-    # cv2.imshow("original",frame)
-    edges = detect_edges(frame)
-    roi = region_of_interest(edges)
-    line_segments = detect_line_segments(roi)
-    lane_lines = average_slope_intercept(frame, line_segments)
-    lane_lines_image = display_lines(frame, lane_lines)
-    steering_angle = get_steering_angle(frame, lane_lines)
-    heading_image = display_heading_line(lane_lines_image,steering_angle)
-    cv2.imshow("heading line",heading_image)
-
-    # calculate changes for PD
-    now = time.time()
-    dt = now - lastTime
-    #if sightDebug:
-    #    cv2.imshow("Cropped sight", roi)
-    deviation = steering_angle - 90
-
-    # PD Code
-    error = -deviation
-    base_turn = 7.5
-    proportional = kp * error
-    derivative = kd * (error - lastError) / dt
-
-    # take values for graphs
-    p_vals.append(proportional)
-    d_vals.append(derivative)
-    err_vals.append(error)
-
-    # determine actual turn to do
-    turn_amt = base_turn + proportional + derivative
-
-    # caps turns to make PWM values
-    if 7.2 < turn_amt < 7.8:
-        turn_amt = 7.5
-    elif turn_amt > left:
-        turn_amt = left
-    elif turn_amt < right:
-        turn_amt = right
-
-    print("TURN AMOUNT: ", turn_amt)
-    # turn!
-    PWM.set_duty_cycle(steeringPin, turn_amt)
-
-    # take values for graphs
-    steer_pwm.append(turn_amt)
-    speed_pwm.append(current_speed)
-
-    # update PD values for next loop
-    lastError = error
-    lastTime = time.time()
-
-    key = cv2.waitKey(1)
-    if key == 27:
-        break
-
-    counter += 1
-
-# clean up resources
-video.release()
-cv2.destroyAllWindows()
-PWM.set_duty_cycle(throttlePin, 7.5)
-PWM.set_duty_cycle(steeringPin, 7.5)
-PWM.stop(throttlePin)
-PWM.stop(steeringPin)
-PWM.cleanup()
-
-plot_pd(p_vals, d_vals, err_vals, True)
-plot_pwm(speed_pwm, steer_pwm, err_vals, True)
+if __name__ == "__main__":
+    main()
