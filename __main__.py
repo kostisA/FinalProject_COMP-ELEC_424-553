@@ -9,13 +9,6 @@
 
 # TODO: cite traffic light detection ML model used (probably YOLO)
 
-# TODO: 
-#   run on AI-64 - might need to modify camera dims & add camera index
-#   add PWM code to reset_car, start_car, turn_car
-#   tune PD variables
-#   manage speed in main loop using driver & speed encoder
-#   insert stop sign detection & logic in main loop
-#   writeup hackster page
 
 import cv2
 import numpy as np
