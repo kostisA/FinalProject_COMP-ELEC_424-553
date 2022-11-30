@@ -26,7 +26,7 @@ cam_idx = 2
 sightDebug = False
 
 # PD variables
-kp = 0.1
+kp = 0.02
 kd = kp * 0.2
 
 # Throttle
@@ -39,7 +39,7 @@ left = 9
 right = 6
 
 # Max number of loops
-max_ticks = 100
+max_ticks = 200
 
 class NotSudo(Exception):
     pass
@@ -63,7 +63,7 @@ def start_car():
 
     # P9_14 - Speed/ESC
     with open('/dev/bone/pwm/1/a/duty_cycle', 'w') as filetowrite:
-        filetowrite.write('1638000')
+        filetowrite.write('1636000')
 
     # P9_16 - Steering
     with open('/dev/bone/pwm/1/b/duty_cycle', 'w') as filetowrite:
@@ -335,8 +335,9 @@ def main():
 
         # determine actual turn to do
         turn_amt = base_turn + proportional + derivative
-
-
+        turn_amt = max(turn_amt, 6)
+        turn_amt = min(turn_amt, 9)
+        
         turn_car(turn_amt) 
         
         # take values for graphs
