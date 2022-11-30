@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import math
 import sys
 import time
+import os
 
 # Camera
 frame_width = 320
@@ -28,24 +29,37 @@ kp = 0.085
 kd = kp * 0.1
 
 # Throttle
-throttlePin = "P8_13"
 go_forward = 7.91
 go_faster_addition = 0.022
-go_faster_tick_delay = 80
-go_faster_tick = 0  # Do not change this here. Code will set this value after seeing stop sign
 dont_move = 7.5
 
 # Steering
-steeringPin = "P9_14"
 left = 9
 right = 6
 
 # Max number of loops
 max_ticks = 2000
 
+class NotSudo(Exception):
+    pass
 
 def reset_car():
-    # TODO: SET PWM TO 0 for steering and speed
+    # P9_14 - Speed/ESC
+    with open('/dev/bone/pwm/1/a/period', 'w') as filetowrite:
+        filetowrite.write('20000000')
+    with open('/dev/bone/pwm/1/a/duty_cycle', 'w') as filetowrite:
+        filetowrite.write('1550000')
+    with open('/dev/bone/pwm/1/a/enable', 'w') as filetowrite:
+        filetowrite.write('1')
+        
+    # P9_16 - Steering
+    with open('/dev/bone/pwm/1/b/period', 'w') as filetowrite:
+        filetowrite.write('20000000')
+    with open('/dev/bone/pwm/1/b/duty_cycle', 'w') as filetowrite:
+        filetowrite.write('1500000')
+    with open('/dev/bone/pwm/1/b/enable', 'w') as filetowrite:
+        filetowrite.write('1')
+        
     print("Car: stopped & straightened")
     
 
@@ -251,6 +265,10 @@ def plot_pwm(speed_pwms, turn_pwms, error, show_img=False):
 
 
 def main():
+    
+    # ensure we have sudo permission
+    if os.getuid() != 0:
+        raise NotSudo("This program is not run as sudo and will not work")
 
     # set up video
     video = cv2.VideoCapture(0)
