@@ -19,14 +19,15 @@ import time
 import os
 
 # Camera
-frame_width = 320
-frame_height = 240
+frame_width = 160
+frame_height = 120
+cam_idx = 2
 
-sightDebug = True
+sightDebug = False
 
 # PD variables
-kp = 0.085
-kd = kp * 0.1
+kp = 0.1
+kd = kp * 0.2
 
 # Throttle
 go_forward = 7.91
@@ -38,39 +39,43 @@ left = 9
 right = 6
 
 # Max number of loops
-max_ticks = 2000
+max_ticks = 100
 
 class NotSudo(Exception):
     pass
 
 def reset_car():
+    # TODO: SET PWM TO 0 for steering and speed
     # P9_14 - Speed/ESC
-    with open('/dev/bone/pwm/1/a/period', 'w') as filetowrite:
-        filetowrite.write('20000000')
     with open('/dev/bone/pwm/1/a/duty_cycle', 'w') as filetowrite:
         filetowrite.write('1550000')
-    with open('/dev/bone/pwm/1/a/enable', 'w') as filetowrite:
-        filetowrite.write('1')
-        
     # P9_16 - Steering
-    with open('/dev/bone/pwm/1/b/period', 'w') as filetowrite:
-        filetowrite.write('20000000')
     with open('/dev/bone/pwm/1/b/duty_cycle', 'w') as filetowrite:
         filetowrite.write('1500000')
-    with open('/dev/bone/pwm/1/b/enable', 'w') as filetowrite:
-        filetowrite.write('1')
-        
-    print("Car: stopped & straightened")
-    
+    print("Car: stopped & straightened")    
+
 
 def start_car():
     # TODO: Set PWM to 7.5
-    print("Car: ready (input something)")
+
+    print("Car ready (input somethingto start)")
     input()
+
+    # P9_14 - Speed/ESC
+    with open('/dev/bone/pwm/1/a/duty_cycle', 'w') as filetowrite:
+        filetowrite.write('1638000')
+
+    # P9_16 - Steering
+    with open('/dev/bone/pwm/1/b/duty_cycle', 'w') as filetowrite:
+        filetowrite.write('1500000')
+
+
     
 def turn_car(turn_amt):
-    # TODO: Turn CAR
-    print("Car turn amount: ", turn_amt);
+   out = turn_amt * 200000
+   with open('/dev/bone/pwm/1/b/duty_cycle', 'w') as filetowrite:
+       filetowrite.write(str(int(out))) 
+   print("Car turn amount: ", out);
     
 def detect_edges(frame):
     # filter for blue lane lines
@@ -267,11 +272,11 @@ def plot_pwm(speed_pwms, turn_pwms, error, show_img=False):
 def main():
     
     # ensure we have sudo permission
-    if os.getuid() != 0:
-        raise NotSudo("This program is not run as sudo and will not work")
+#    if os.getuid() != 0:
+#        raise NotSudo("This program is not run as sudo and will not work")
 
     # set up video
-    video = cv2.VideoCapture(0)
+    video = cv2.VideoCapture(cam_idx)
     video.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
     video.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
     
@@ -331,13 +336,6 @@ def main():
         # determine actual turn to do
         turn_amt = base_turn + proportional + derivative
 
-        # caps turns to make PWM values
-        if 7.2 < turn_amt < 7.8:
-            turn_amt = 7.5
-        elif turn_amt > left:
-            turn_amt = left
-        elif turn_amt < right:
-            turn_amt = right
 
         turn_car(turn_amt) 
         
@@ -362,6 +360,6 @@ def main():
     cv2.destroyAllWindows()
     plot_pd(p_vals, d_vals, err_vals, True)
     plot_pwm(speed_pwm, steer_pwm, err_vals, True)
-
+    
 if __name__ == "__main__":
     main()
