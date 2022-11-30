@@ -3,7 +3,7 @@
 TODO: 
 - ssh wirelessly into AI-64
 - Vision: run script - might need to modify camera dims & add camera index (instructions canvas)
-- Move Car: add PWM code to reset_car, start_car, turn_car - might need to change pin values
+- Move Car: add PWM code to start_car, turn_car
 - Turn Car: tune PD variables (P: responsiveness to error, D: reduce oscillation around desired trajectory)
 
 - Driver: device tree addition, write driver to read encoder & write file, manage speed in main loop using driver & speed encoder by reading file
